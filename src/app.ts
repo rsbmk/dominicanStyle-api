@@ -4,9 +4,11 @@ const app = express();
 
 app.use(express.json());
 
-app.use("/", handleRouter);
-app.get("/", (req, res) => {
-  res.send("Hello World!");
+app.get("/", async (req, res) => {
+  res.json({ Hello: "World" });
 });
+
+app.use("/", handleRouter);
+
 
 export default app;
