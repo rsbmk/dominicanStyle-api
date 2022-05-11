@@ -1,40 +1,83 @@
 import { Router } from "express";
+import { PrismaClient } from "@prisma/client";
+import { Employee } from "types";
 export const employeesRouter = Router();
-
-const EmployeesList = [
-  {
-    id: 1,
-    name: "Roberto Melo",
-    phone: "123456789",
-    address: "123 Main St",
-    nationality: "Dominicana",
-    role: "Barber Sop",
-  },
-];
+const prisma = new PrismaClient();
 
 employeesRouter.get("/", (request, response) => {
-  response.status(200).json(EmployeesList).end();
+  prisma.employee
+    .findMany()
+    .then((employees) => {
+      response.json(employees);
+    })
+    .catch((error) => {
+      response.status(500).json({
+        message: error.message,
+        errorName: error.name,
+      });
+    })
+    .finally(() => prisma.$disconnect());
 });
 
 employeesRouter.get("/:employeeId", (request, response) => {
   const { employeeId } = request.params;
-  const employee = EmployeesList.find((employee) => employee.id === Number(employeeId));
-  response.status(302).json(employee).end();
+  prisma.employee
+    .findUnique({ where: { id: Number(employeeId) } })
+    .then((employee) => {
+      response.json(employee).end();
+    })
+    .catch((error) => {
+      response.status(500).json({
+        message: error.message,
+        errorName: error.name,
+      });
+    })
+    .finally(() => prisma.$disconnect());
 });
 
 employeesRouter.post("/", (request, response) => {
-  const { name, phone, address, nationality, role } = request.body;
+  const { name, phone, address, roleId }: Employee = request.body;
 
-  if (!name || !phone || !address || !nationality || !role)
-    return response.status(400).json({
-      message: "Todos los campos son requeridos",
-      status: 400,
-      error: "empty field",
-      fields: ["name", "phone", "address", "nationality", "role"],
-    });
+  if (!name || !phone || !address || !roleId)
+    response
+      .status(400)
+      .json({
+        message: "Todos los campos son requeridos",
+        status: 400,
+        error: "empty field",
+        fields: ["name", "phone", "address", "roleId"],
+      })
+      .end();
 
-  const id = EmployeesList.length + 1;
-  EmployeesList.push({ id, name, phone, address, nationality, role });
+  if (isNaN(roleId))
+    response
+      .status(400)
+      .json({
+        message: "The roleId must be a number",
+        status: 400,
+      })
+      .end();
 
-  response.status(201).json(EmployeesList).end();
+  prisma.employee
+    .create({
+      data: {
+        name,
+        address,
+        phone,
+        role: { connect: { id: Number(roleId) } },
+      },
+    })
+    .then((employee) => {
+      response.status(201).json(employee).end();
+    })
+    .catch((error) => {
+      response
+        .status(500)
+        .json({
+          message: error.message,
+          errorName: error.name,
+        })
+        .end();
+    })
+    .finally(() => prisma.$disconnect());
 });
