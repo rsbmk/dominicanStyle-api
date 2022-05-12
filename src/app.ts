@@ -1,14 +1,13 @@
+import { errorRouter } from "./routes/handleErrors/";
 import express from "express";
-import handleRouter from "./routes";
-const app = express();
+import { router } from "./routes";
+
+export const app = express();
 
 app.use(express.json());
 
-app.get("/", async (req, res) => {
-  res.json({ Hello: "World" });
-});
+// routers
+app.use("/api/", router);
 
-app.use("/", handleRouter);
-
-
-export default app;
+// handlers errors middleware
+app.use(errorRouter);
