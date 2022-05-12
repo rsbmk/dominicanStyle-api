@@ -1,9 +1,13 @@
-import { errorRouter } from "./routes/handleErrors/";
+import cors from "cors";
 import express from "express";
+
+import { errorRouter } from "./routes/handleErrors/";
 import { router } from "./routes";
 
 export const app = express();
 
+// Middlewares
+app.use(cors());
 app.use(express.json());
 
 // routers
