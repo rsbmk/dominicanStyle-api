@@ -1,20 +1,14 @@
-/*
-  Warnings:
+-- CreateTable
+CREATE TABLE "Employee" (
+    "id" SERIAL NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "name" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "address" TEXT NOT NULL,
+    "teamId" INTEGER NOT NULL,
 
-  - You are about to drop the column `roleId` on the `Employee` table. All the data in the column will be lost.
-  - You are about to drop the `Role` table. If the table is not empty, all the data it contains will be lost.
-  - Added the required column `teamId` to the `Employee` table without a default value. This is not possible if the table is not empty.
-
-*/
--- DropForeignKey
-ALTER TABLE "Employee" DROP CONSTRAINT "Employee_roleId_fkey";
-
--- AlterTable
-ALTER TABLE "Employee" DROP COLUMN "roleId",
-ADD COLUMN     "teamId" INTEGER NOT NULL;
-
--- DropTable
-DROP TABLE "Role";
+    CONSTRAINT "Employee_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "Service" (
