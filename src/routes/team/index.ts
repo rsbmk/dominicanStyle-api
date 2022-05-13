@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { PrismaClient } from "@prisma/client";
-export const rolesRouter = Router();
+export const teamRoute = Router();
 const prisma = new PrismaClient();
 
-rolesRouter.get("/", (request, response) => {
-  prisma.role
+teamRoute.get("/", (request, response) => {
+  prisma.team
     .findMany()
-    .then((roles) => {
-      response.json(roles).end();
+    .then((teams) => {
+      response.json(teams).end();
     })
     .catch((error) => {
       response
@@ -21,12 +21,12 @@ rolesRouter.get("/", (request, response) => {
     .finally(() => prisma.$disconnect());
 });
 
-rolesRouter.get("/:roleId", (request, response) => {
-  const { roleId } = request.params;
-  const id = Number(roleId);
+teamRoute.get("/:teamId", (request, response) => {
+  const { teamId } = request.params;
+  const id = Number(teamId);
 
   if (isNaN(id)) {
-    response
+    return response
       .status(400)
       .json({
         message: "Invalid role id. Must be a number",
@@ -35,11 +35,11 @@ rolesRouter.get("/:roleId", (request, response) => {
       .end();
   }
 
-  prisma.role
+  prisma.team
     .findFirst({ where: { id } })
-    .then((role) => {
-      if (!role) {
-        response
+    .then((team) => {
+      if (team === null) {
+        return response
           .status(404)
           .json({
             message: "Role not found",
@@ -47,7 +47,7 @@ rolesRouter.get("/:roleId", (request, response) => {
           })
           .end();
       }
-      response.json(role).end();
+      response.json(team).end();
     })
     .catch((error) => {
       response
@@ -61,11 +61,11 @@ rolesRouter.get("/:roleId", (request, response) => {
     .finally(() => prisma.$disconnect());
 });
 
-rolesRouter.post("/", (request, response) => {
+teamRoute.post("/", (request, response) => {
   const { name } = request.body;
 
   if (!name) {
-    response
+    return response
       .status(400)
       .json({
         message: "The name is required",
@@ -74,14 +74,14 @@ rolesRouter.post("/", (request, response) => {
       .end();
   }
 
-  prisma.role
+  prisma.team
     .create({
       data: {
         name,
       },
     })
-    .then((role) => {
-      response.status(201).json(role).end();
+    .then((team) => {
+      response.status(201).json(team).end();
     })
     .catch((error) => {
       response
