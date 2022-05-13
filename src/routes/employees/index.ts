@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { PrismaClient } from "@prisma/client";
-import { Employee } from "types";
+import { Employee, PrismaClient } from "@prisma/client";
 export const employeesRouter = Router();
 const prisma = new PrismaClient();
 
@@ -21,6 +20,12 @@ employeesRouter.get("/", (request, response) => {
 
 employeesRouter.get("/:employeeId", (request, response) => {
   const { employeeId } = request.params;
+  if (!employeeId || isNaN(Number(employeeId)))
+    return response.status(400).json({
+      message: "Invalid employee id. Must be a number",
+      status: 400,
+    });
+
   prisma.employee
     .findUnique({ where: { id: Number(employeeId) } })
     .then((employee) => {
@@ -36,24 +41,24 @@ employeesRouter.get("/:employeeId", (request, response) => {
 });
 
 employeesRouter.post("/", (request, response) => {
-  const { name, phone, address, roleId }: Employee = request.body;
+  const { name, phone, address, teamId }: Employee = request.body;
 
-  if (!name || !phone || !address || !roleId)
-    response
+  if (!name || !phone || !address || !teamId)
+    return response
       .status(400)
       .json({
         message: "Todos los campos son requeridos",
         status: 400,
         error: "empty field",
-        fields: ["name", "phone", "address", "roleId"],
+        fields: ["name", "phone", "address", "teamId"],
       })
       .end();
 
-  if (isNaN(roleId))
-    response
+  if (isNaN(teamId))
+    return response
       .status(400)
       .json({
-        message: "The roleId must be a number",
+        message: "The teamId must be a number",
         status: 400,
       })
       .end();
@@ -64,7 +69,7 @@ employeesRouter.post("/", (request, response) => {
         name,
         address,
         phone,
-        role: { connect: { id: Number(roleId) } },
+        team: { connect: { id: Number(teamId) } },
       },
     })
     .then((employee) => {
