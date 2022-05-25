@@ -1,5 +1,6 @@
-import { response, Router } from "express";
+import { Router } from "express";
 import { PrismaClient, Appointment } from "@prisma/client";
+import { validateManyFilds, validateNumberFild, validateTelephone } from "../helpers/validateFnc";
 const prisma = new PrismaClient();
 
 export const appointmentRouter = Router();
@@ -16,21 +17,25 @@ appointmentRouter.get("/", (req, res) => {
     .then((appointments) => {
       res.json(appointments).end();
     })
-    .catch((err) => {
+    .catch((error) => {
       res
         .status(500)
-        .json({ message: err.message, status: 500, error: err, errorName: err.name })
+        .json({
+          message: error.meta.cause,
+          status: 400,
+          error: error.message,
+          primaError: error,
+        })
         .end();
     })
     .finally(() => prisma.$disconnect());
 });
 
 // GET /v1/appointment/:id - Get appointment by employee id
-appointmentRouter.get("/:employeeId/employee", (req, res) => {
-  const { employeeId } = req.params;
+appointmentRouter.get("/:employeeId/employee", (request, response) => {
+  const { employeeId } = request.params;
 
-  if (!employeeId || isNaN(Number(employeeId)))
-    return response.status(400).json({ message: "Employee id is required" }).end();
+  validateNumberFild(response, "employeeId", Number(employeeId));
 
   prisma.employee
     .findMany({
@@ -40,12 +45,17 @@ appointmentRouter.get("/:employeeId/employee", (req, res) => {
       },
     })
     .then((appointments) => {
-      res.json(appointments).end();
+      response.json(appointments).end();
     })
-    .catch((err) => {
-      res
+    .catch((error) => {
+      response
         .status(500)
-        .json({ message: err.message, status: 500, error: err, errorName: err.name })
+        .json({
+          message: error.meta.cause,
+          status: 400,
+          error: error.message,
+          primaError: error,
+        })
         .end();
     })
     .finally(() => prisma.$disconnect());
@@ -53,38 +63,21 @@ appointmentRouter.get("/:employeeId/employee", (req, res) => {
 
 // create appointment
 appointmentRouter.post("/", (request, response) => {
+  validateManyFilds(response, request.body, [
+    "name",
+    "shedule",
+    "telephone",
+    "employeeId",
+    "serviceId",
+  ]);
+
   const { name, shedule, telephone, employeeId, serviceId }: Appointment = request.body;
 
-  if (!name || !shedule || !telephone || !employeeId || !serviceId)
-    return response
-      .status(400)
-      .json({
-        error: "Missing data",
-        status: 400,
-        requiredFields: ["name", "shedule", "telephone", "employeeId", "serviceId"],
-      })
-      .end();
+  validateNumberFild(response, "employeeId", employeeId);
 
-  if (isNaN(Number(employeeId)) || isNaN(Number(serviceId)))
-    return response
-      .status(400)
-      .json({
-        error: "fields must be numbers",
-        status: 400,
-        requiredFields: ["employeeId", "serviceId"],
-      })
-      .end();
+  validateNumberFild(response, "serviceId", serviceId);
 
-  const validateNumber = /^09[0-9]{8}$/;
-  if (!validateNumber.test(telephone))
-    return response
-      .status(400)
-      .json({
-        error: "telephone must be valid",
-        status: 400,
-        requiredFields: ["Debe iniciar con 09", "Debe tener 10 digitos", "Solo numeros"],
-      })
-      .end();
+  validateTelephone(response, telephone);
 
   prisma.appointment
     .create({
@@ -103,6 +96,7 @@ appointmentRouter.post("/", (request, response) => {
           },
         },
       },
+      include: { employee: true, service: true },
     })
     .then((appointment) => {
       response.status(201).json(appointment).end();
@@ -111,11 +105,27 @@ appointmentRouter.post("/", (request, response) => {
       response
         .status(400)
         .json({
-          errorMessage: error.message,
+          message: error.meta.cause,
           status: 400,
-          error,
+          error: error.message,
+          primaError: error,
         })
         .end();
     })
     .finally(() => prisma.$disconnect());
+});
+
+appointmentRouter.post("/search/date/", (request, response) => {
+  const { startAt, endAt } = request.body;
+
+  validateManyFilds(response, request.body, ["startAt, endAt"]);
+
+  prisma.appointment.findMany({
+    where: {
+      createdAt: {
+        lte: new Date(endAt),
+        gte: new Date(startAt),
+      },
+    },
+  });
 });
