@@ -105,7 +105,7 @@ appointmentRouter.post("/", (request, response) => {
       response
         .status(400)
         .json({
-          message: error.meta.cause,
+          message: error?.meta.cause ?? error.message,
           status: 400,
           error: error.message,
           primaError: error,
