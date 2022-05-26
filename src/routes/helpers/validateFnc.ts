@@ -1,4 +1,5 @@
 import { Response } from "express";
+import dayjs from "dayjs";
 
 export function validateManyFilds(response: Response, objToValidate: any, fields: string[]) {
   fields.forEach((field) => {
@@ -40,6 +41,20 @@ export function validateTelephone(response: Response, telephone: string) {
         fields: ["telephone"],
         message: "Debe iniciar con 09, y tener 10 digitos",
         nameInput: "telephone",
+        status: 400,
+      })
+      .end();
+}
+
+export function validateIsDate(response: Response, date: Date) {
+  if (!dayjs(date).isValid())
+    return response
+      .status(400)
+      .json({
+        error: "La fecha no es valida",
+        fields: ["date"],
+        message: "Debe ser una fecha valida",
+        nameInput: "date",
         status: 400,
       })
       .end();

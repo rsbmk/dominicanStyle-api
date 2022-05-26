@@ -1,8 +1,16 @@
-import { Router } from "express";
 import { PrismaClient, Appointment } from "@prisma/client";
-import { validateManyFilds, validateNumberFild, validateTelephone } from "../helpers/validateFnc";
-const prisma = new PrismaClient();
+import { Router } from "express";
 
+import { Periods } from "types";
+import { PERIODS } from "../../constants";
+import {
+  validateIsDate,
+  validateManyFilds,
+  validateNumberFild,
+  validateTelephone,
+} from "../helpers/validateFnc";
+
+const prisma = new PrismaClient();
 export const appointmentRouter = Router();
 
 // GET /v1/appointment - Get all appointments
@@ -21,7 +29,7 @@ appointmentRouter.get("/", (req, res) => {
       res
         .status(500)
         .json({
-          message: error.meta.cause,
+          message: error?.meta.cause ?? error,
           status: 400,
           error: error.message,
           primaError: error,
@@ -51,7 +59,7 @@ appointmentRouter.get("/:employeeId/employee", (request, response) => {
       response
         .status(500)
         .json({
-          message: error.meta.cause,
+          message: error?.meta.cause ?? error,
           status: 400,
           error: error.message,
           primaError: error,
@@ -79,6 +87,8 @@ appointmentRouter.post("/", (request, response) => {
 
   validateTelephone(response, telephone);
 
+  validateIsDate(response, shedule);
+
   prisma.appointment
     .create({
       data: {
@@ -105,7 +115,7 @@ appointmentRouter.post("/", (request, response) => {
       response
         .status(400)
         .json({
-          message: error?.meta.cause ?? error.message,
+          message: error?.meta.cause ?? error,
           status: 400,
           error: error.message,
           primaError: error,
@@ -115,17 +125,49 @@ appointmentRouter.post("/", (request, response) => {
     .finally(() => prisma.$disconnect());
 });
 
-appointmentRouter.post("/search/date/", (request, response) => {
-  const { startAt, endAt } = request.body;
+// GET /v1/appointment/today - Get all appointments today
+appointmentRouter.get("/:period", (request, response) => {
+  const { period } = request.params;
 
-  validateManyFilds(response, request.body, ["startAt, endAt"]);
+  if (!Object.keys(PERIODS).includes(period))
+    return response
+      .status(400)
+      .json({
+        error: "El periodo no es valido",
+        fields: ["period"],
+        message: "Debe ser un periodo valido",
+        nameInput: "period",
+        periods: Object.keys(PERIODS),
+        status: 400,
+      })
+      .end();
 
-  prisma.appointment.findMany({
-    where: {
-      createdAt: {
-        lte: new Date(endAt),
-        gte: new Date(startAt),
+  const { end, start } = PERIODS[period as Periods];
+
+  prisma.appointment
+    .findMany({
+      where: {
+        shedule: {
+          gte: new Date(start),
+          lte: new Date(end),
+        },
       },
-    },
-  });
+      include: { employee: true, service: true },
+      orderBy: { createdAt: "asc" },
+    })
+    .then((appointments) => {
+      response.json(appointments).end();
+    })
+    .catch((error) => {
+      response
+        .status(400)
+        .json({
+          message: error?.meta.cause ?? error,
+          status: 400,
+          error: error.message,
+          primaError: error,
+        })
+        .end();
+    })
+    .finally(() => prisma.$disconnect());
 });
