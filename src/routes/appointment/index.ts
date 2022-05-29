@@ -1,4 +1,5 @@
 import { PrismaClient, Appointment } from "@prisma/client";
+import dayjs from "dayjs";
 import { Router } from "express";
 
 import { Periods } from "types";
@@ -29,7 +30,7 @@ appointmentRouter.get("/", (req, res) => {
       res
         .status(500)
         .json({
-          message: error?.meta.cause ?? error,
+          message: error.meta?.cause ?? error,
           status: 400,
           error: error.message,
           primaError: error,
@@ -59,7 +60,7 @@ appointmentRouter.get("/:employeeId/employee", (request, response) => {
       response
         .status(500)
         .json({
-          message: error?.meta.cause ?? error,
+          message: error.meta?.cause ?? error,
           status: 400,
           error: error.message,
           primaError: error,
@@ -73,13 +74,13 @@ appointmentRouter.get("/:employeeId/employee", (request, response) => {
 appointmentRouter.post("/", (request, response) => {
   validateManyFilds(response, request.body, [
     "name",
-    "shedule",
+    "schedule",
     "telephone",
     "employeeId",
     "serviceId",
   ]);
 
-  const { name, shedule, telephone, employeeId, serviceId }: Appointment = request.body;
+  const { name, schedule, telephone, employeeId, serviceId }: Appointment = request.body;
 
   validateNumberFild(response, "employeeId", employeeId);
 
@@ -87,13 +88,27 @@ appointmentRouter.post("/", (request, response) => {
 
   validateTelephone(response, telephone);
 
-  validateIsDate(response, shedule);
+  validateIsDate(response, new Date(schedule));
+
+  const isLessThanNow = dayjs(schedule).isBefore(dayjs(), "second");
+
+  if (isLessThanNow)
+    return response
+      .status(400)
+      .json({
+        message: "No puede crear una cita con una fecha anterior a la actual",
+        status: 400,
+        error: "Fecha invalida",
+        fields: ["schedule"],
+        nameInput: "schedule",
+      })
+      .end();
 
   prisma.appointment
     .create({
       data: {
         name,
-        shedule: new Date(shedule),
+        schedule: dayjs(schedule).toJSON(),
         telephone,
         employee: {
           connect: {
@@ -115,7 +130,7 @@ appointmentRouter.post("/", (request, response) => {
       response
         .status(400)
         .json({
-          message: error?.meta.cause ?? error,
+          message: error.meta?.cause ?? error,
           status: 400,
           error: error.message,
           primaError: error,
@@ -147,9 +162,9 @@ appointmentRouter.get("/:period", (request, response) => {
   prisma.appointment
     .findMany({
       where: {
-        shedule: {
-          gte: new Date(start),
-          lte: new Date(end),
+        schedule: {
+          gte: start,
+          lte: end,
         },
       },
       include: { employee: true, service: true },
@@ -162,7 +177,7 @@ appointmentRouter.get("/:period", (request, response) => {
       response
         .status(400)
         .json({
-          message: error?.meta.cause ?? error,
+          message: error.meta?.cause ?? error,
           status: 400,
           error: error.message,
           primaError: error,
