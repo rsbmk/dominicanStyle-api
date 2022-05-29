@@ -1,9 +1,13 @@
-import { Router } from "express";
 import { Employee, PrismaClient } from "@prisma/client";
+import { Router } from "express";
+
+import { handleCatch } from "../handleErrors";
+import { validateManyFilds, validateNumberFild, validateTelephone } from "../helpers/validateFnc";
+
 export const employeesRouter = Router();
 const prisma = new PrismaClient();
 
-// get all employees
+// GET /v1/employees - get all employees
 employeesRouter.get("/", (request, response) => {
   prisma.employee
     .findMany({
@@ -16,60 +20,38 @@ employeesRouter.get("/", (request, response) => {
       response
         .status(500)
         .json({
-          message: error.message,
-          errorName: error.name,
+          message: error.meta?.cause ?? error,
+          error: error.message,
+          primaError: error,
         })
         .end();
     })
     .finally(() => prisma.$disconnect());
 });
 
-// get a single employee
+// GET /v1/employees/:employeeId - get a single employee
 employeesRouter.get("/:employeeId", (request, response) => {
   const { employeeId } = request.params;
-  if (!employeeId || isNaN(Number(employeeId)))
-    return response.status(400).json({
-      message: "Invalid employee id. Must be a number",
-      status: 400,
-    });
+  validateNumberFild(response, "employeeId", Number(employeeId));
 
   prisma.employee
     .findUnique({ where: { id: Number(employeeId) }, include: { service: true, team: true } })
     .then((employee) => {
       response.json(employee).end();
     })
-    .catch((error) => {
-      response.status(500).json({
-        message: error.message,
-        errorName: error.name,
-      });
-    })
+    .catch((error) => handleCatch(error, response))
     .finally(() => prisma.$disconnect());
 });
 
-// create a new employee
+// POST /v1/employees - create a new employee
 employeesRouter.post("/", (request, response) => {
   const { name, phone, address, teamId }: Employee = request.body;
 
-  if (!name || !phone || !address || !teamId)
-    return response
-      .status(400)
-      .json({
-        message: "Todos los campos son requeridos",
-        status: 400,
-        error: "empty field",
-        fields: ["name", "phone", "address", "teamId"],
-      })
-      .end();
+  validateManyFilds(response, request.body, ["name", "schedule", "phone", "address", "teamId"]);
 
-  if (isNaN(teamId))
-    return response
-      .status(400)
-      .json({
-        message: "The teamId must be a number",
-        status: 400,
-      })
-      .end();
+  validateNumberFild(response, "teamId", teamId);
+
+  validateTelephone(response, phone);
 
   prisma.employee
     .create({
@@ -83,51 +65,22 @@ employeesRouter.post("/", (request, response) => {
     .then((employee) => {
       response.status(201).json(employee).end();
     })
-    .catch((error) => {
-      response
-        .status(500)
-        .json({
-          message: error.message,
-          errorName: error.name,
-        })
-        .end();
-    })
+    .catch((error) => handleCatch(error, response))
     .finally(() => prisma.$disconnect());
 });
 
-// update employee
+// PUT /v1/employees/:employeeId - update employee
 employeesRouter.put("/:employeeId", (request, response) => {
   const { employeeId } = request.params;
   const { name, phone, address, teamId }: Employee = request.body;
 
-  if (!employeeId || isNaN(Number(employeeId)))
-    return response
-      .status(400)
-      .json({
-        message: "Invalid employee id. Must be a number",
-        status: 400,
-      })
-      .end();
+  validateManyFilds(response, request.body, ["name", "phone", "address", "teamId"]);
 
-  if (!name || !phone || !address || !teamId)
-    return response
-      .status(400)
-      .json({
-        message: "Todos los campos son requeridos",
-        status: 400,
-        error: "empty field",
-        fields: ["name", "phone", "address", "teamId"],
-      })
-      .end();
+  validateNumberFild(response, "employeeId", Number(employeeId));
 
-  if (isNaN(teamId))
-    return response
-      .status(400)
-      .json({
-        message: "The teamId must be a number",
-        status: 400,
-      })
-      .end();
+  validateNumberFild(response, "teamId", Number(teamId));
+
+  validateTelephone(response, phone);
 
   prisma.employee
     .update({
@@ -136,46 +89,24 @@ employeesRouter.put("/:employeeId", (request, response) => {
         name,
         address,
         phone,
+        team: { connect: { id: Number(teamId) } },
       },
       include: { team: true, service: true },
     })
     .then((employee) => {
       response.status(200).json(employee).end();
     })
-    .catch((error) => {
-      response
-        .status(500)
-        .json({
-          message: error.message,
-          errorName: error.name,
-        })
-        .end();
-    })
+    .catch((error) => handleCatch(error, response))
     .finally(() => prisma.$disconnect());
 });
 
-// add service to employee
+// POST /v1/employees/:employeeId/service - add service to employee
 employeesRouter.post("/:employeeId/service", (request, response) => {
   const { employeeId } = request.params;
   const { serviceId } = request.body;
 
-  if (!employeeId || isNaN(Number(employeeId)))
-    return response
-      .status(400)
-      .json({
-        message: "Invalid employee id. Must be a number",
-        status: 400,
-      })
-      .end();
-
-  if (!serviceId || isNaN(Number(serviceId)))
-    return response
-      .status(400)
-      .json({
-        message: "The serviceId must be a number",
-        status: 400,
-      })
-      .end();
+  validateNumberFild(response, "employeeId", Number(employeeId));
+  validateNumberFild(response, "serviceId", Number(serviceId));
 
   prisma.employeeOnService
     .create({
@@ -188,15 +119,7 @@ employeesRouter.post("/:employeeId/service", (request, response) => {
     .then((employee) => {
       response.status(201).json(employee).end();
     })
-    .catch((error) => {
-      response
-        .status(500)
-        .json({
-          message: error.message,
-          errorName: error.name,
-        })
-        .end();
-    })
+    .catch((error) => handleCatch(error, response))
     .finally(() => prisma.$disconnect());
 });
 
@@ -204,14 +127,7 @@ employeesRouter.post("/:employeeId/service", (request, response) => {
 employeesRouter.get("/:employeeId/service", (request, response) => {
   const { employeeId } = request.params;
 
-  if (!employeeId || isNaN(Number(employeeId)))
-    return response
-      .status(400)
-      .json({
-        message: "Invalid employee id. Must be a number",
-        status: 400,
-      })
-      .end();
+  validateNumberFild(response, "employeeId", Number(employeeId));
 
   prisma.employeeOnService
     .findFirst({
@@ -221,14 +137,6 @@ employeesRouter.get("/:employeeId/service", (request, response) => {
     .then((employee) => {
       response.json(employee).end();
     })
-    .catch((error) => {
-      response
-        .status(500)
-        .json({
-          message: error.message,
-          errorName: error.name,
-        })
-        .end();
-    })
+    .catch((error) => handleCatch(error, response))
     .finally(() => prisma.$disconnect());
 });

@@ -11,23 +11,25 @@ datasource db {
 }
 
 model Employee {
-  id        Int                 @id @default(autoincrement())
-  createdAt DateTime            @default(now())
-  name      String
-  phone     String
-  address   String
-  team      Team                @relation(fields: [teamId], references: [id])
-  teamId    Int
-  service   EmployeeOnService[]
+  id           Int                 @id @default(autoincrement())
+  createdAt    DateTime            @default(now())
+  name         String
+  phone        String
+  address      String
+  team         Team                @relation(fields: [teamId], references: [id])
+  teamId       Int
+  service      EmployeeOnService[]
+  appointments Appointment[]
 }
 
 model Service {
-  id          Int                 @id @default(autoincrement())
-  createdAt   DateTime            @default(now())
-  name        String
-  price       Float
-  description String
-  employee    EmployeeOnService[]
+  id           Int                 @id @default(autoincrement())
+  createdAt    DateTime            @default(now())
+  name         String
+  price        Float
+  description  String
+  employee     EmployeeOnService[]
+  appointments Appointment[]
 }
 
 model EmployeeOnService {
@@ -44,4 +46,16 @@ model Team {
   createdAt DateTime   @default(now())
   name      String
   employees Employee[]
+}
+
+model Appointment {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  name       String
+  telephone  String
+  schedule   DateTime
+  service    Service  @relation(fields: [serviceId], references: [id])
+  serviceId  Int
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId Int
 }
