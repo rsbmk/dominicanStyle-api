@@ -1,6 +1,7 @@
 import { PrismaClient, Appointment } from "@prisma/client";
 import dayjs from "dayjs";
 import { Router } from "express";
+import { handleCatch } from "../handleErrors";
 
 import { Periods } from "types";
 import { PERIODS } from "../../constants";
@@ -15,7 +16,7 @@ const prisma = new PrismaClient();
 export const appointmentRouter = Router();
 
 // GET /v1/appointment - Get all appointments
-appointmentRouter.get("/", (req, res) => {
+appointmentRouter.get("/", (req, response) => {
   prisma.appointment
     .findMany({
       include: {
@@ -24,19 +25,9 @@ appointmentRouter.get("/", (req, res) => {
       },
     })
     .then((appointments) => {
-      res.json(appointments).end();
+      response.json(appointments).end();
     })
-    .catch((error) => {
-      res
-        .status(500)
-        .json({
-          message: error.meta?.cause ?? error,
-          status: 400,
-          error: error.message,
-          primaError: error,
-        })
-        .end();
-    })
+    .catch((error) => handleCatch(error, response))
     .finally(() => prisma.$disconnect());
 });
 
@@ -56,22 +47,12 @@ appointmentRouter.get("/:employeeId/employee", (request, response) => {
     .then((appointments) => {
       response.json(appointments).end();
     })
-    .catch((error) => {
-      response
-        .status(500)
-        .json({
-          message: error.meta?.cause ?? error,
-          status: 400,
-          error: error.message,
-          primaError: error,
-        })
-        .end();
-    })
+    .catch((error) => handleCatch(error, response))
     .finally(() => prisma.$disconnect());
 });
 
 // create appointment
-appointmentRouter.post("/", (request, response) => {
+appointmentRouter.post("/", async (request, response) => {
   validateManyFilds(response, request.body, [
     "name",
     "schedule",
@@ -104,6 +85,41 @@ appointmentRouter.post("/", (request, response) => {
       })
       .end();
 
+  try {
+    // buscar si existe una cita en ese horario
+    const scheduleExist = await prisma.appointment.findFirst({
+      where: {
+        schedule: {
+          equals: dayjs(schedule).toJSON(),
+        },
+        OR: {
+          schedule: {
+            gte: dayjs(schedule).startOf("hour").toJSON(),
+            lte: dayjs(schedule).endOf("hour").toJSON(),
+          },
+        },
+      },
+    });
+
+    if (Boolean(scheduleExist))
+      return response
+        .status(400)
+        .json({
+          message: "Ya existe una cita en ese horario",
+          status: 400,
+          error: "Elige otro horario",
+          fields: ["schedule"],
+          nameInput: "schedule",
+          scheduleExist,
+        })
+        .end();
+  } catch (error) {
+    return handleCatch(error, response);
+  } finally {
+    await prisma.$disconnect();
+  }
+
+  // crear la cita
   prisma.appointment
     .create({
       data: {
@@ -126,21 +142,11 @@ appointmentRouter.post("/", (request, response) => {
     .then((appointment) => {
       response.status(201).json(appointment).end();
     })
-    .catch((error) => {
-      response
-        .status(400)
-        .json({
-          message: error.meta?.cause ?? error,
-          status: 400,
-          error: error.message,
-          primaError: error,
-        })
-        .end();
-    })
+    .catch((error) => handleCatch(error, response))
     .finally(() => prisma.$disconnect());
 });
 
-// GET /v1/appointment/today - Get all appointments today
+// GET /v1/appointment/:period - Get all appointments today
 appointmentRouter.get("/:period", (request, response) => {
   const { period } = request.params;
 
@@ -173,16 +179,6 @@ appointmentRouter.get("/:period", (request, response) => {
     .then((appointments) => {
       response.json(appointments).end();
     })
-    .catch((error) => {
-      response
-        .status(400)
-        .json({
-          message: error.meta?.cause ?? error,
-          status: 400,
-          error: error.message,
-          primaError: error,
-        })
-        .end();
-    })
+    .catch((error) => handleCatch(error, response))
     .finally(() => prisma.$disconnect());
 });
