@@ -1,61 +1,104 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-model Employee {
-  id           Int                 @id @default(autoincrement())
-  createdAt    DateTime            @default(now())
-  name         String
-  phone        String
-  address      String
-  team         Team                @relation(fields: [teamId], references: [id])
-  teamId       Int
-  service      EmployeeOnService[]
-  appointments Appointment[]
-}
-
-model Service {
-  id           Int                 @id @default(autoincrement())
-  createdAt    DateTime            @default(now())
-  name         String
-  price        Float
-  description  String
-  employee     EmployeeOnService[]
-  appointments Appointment[]
-}
-
-model EmployeeOnService {
-  employee   Employee @relation(fields: [employeeId], references: [id])
-  employeeId Int
-  service    Service  @relation(fields: [serviceId], references: [id])
-  serviceId  Int
-
-  @@id([employeeId, serviceId])
-}
-
-model Team {
-  id        Int        @id @default(autoincrement())
-  createdAt DateTime   @default(now())
-  name      String
-  employees Employee[]
+model Company {
+  id       Int        @id @default(autoincrement())
+  name     String     @unique(map: "name_UNIQUE") @db.VarChar(100)
+  createAt DateTime?  @default(dbgenerated("(now())")) @db.Timestamp(0)
+  Employee Employee[]
 }
 
 model Appointment {
-  id         Int      @id @default(autoincrement())
-  createdAt  DateTime @default(now())
-  name       String
-  telephone  String
-  schedule   DateTime
-  service    Service  @relation(fields: [serviceId], references: [id])
-  serviceId  Int
-  employee   Employee @relation(fields: [employeeId], references: [id])
-  employeeId Int
+  id                  Int                   @id @default(autoincrement())
+  createAt            DateTime?             @default(dbgenerated("(now())")) @db.Timestamp(0)
+  appointmentDate     DateTime              @db.DateTime(0)
+  state               Appointment_state
+  client_id           String                @db.Char(10)
+  employee_id         Int
+  Client              Client                @relation(fields: [client_id], references: [cedula], map: "appointment_ibfk_1")
+  Employee            Employee              @relation(fields: [employee_id], references: [id], map: "appointment_ibfk_2")
+  Service_Appointment Service_Appointment[]
+
+  @@index([client_id], map: "client_id")
+  @@index([employee_id], map: "employee_id")
+}
+
+model Client {
+  cedula      String        @id @db.Char(10)
+  name        String        @db.VarChar(50)
+  last_name   String        @db.VarChar(50)
+  telephone   String?       @db.VarChar(15)
+  createAt    DateTime?     @default(dbgenerated("(now())")) @db.Timestamp(0)
+  Appointment Appointment[]
+}
+
+model Employee {
+  id            Int             @id @default(autoincrement())
+  name          String          @db.VarChar(100)
+  last_name     String          @db.VarChar(100)
+  telephone     String?         @db.VarChar(15)
+  createAt      DateTime?       @default(dbgenerated("(now())")) @db.Timestamp(0)
+  address       String?         @db.VarChar(200)
+  company_id    Int
+  Company       Company         @relation(fields: [company_id], references: [id], map: "employee_ibfk_1")
+  Appointment   Appointment[]
+  Employee_Team Employee_Team[]
+
+  @@index([company_id], map: "company_id")
+}
+
+model Employee_Team {
+  id          Int      @id @default(autoincrement())
+  team_id     Int
+  employee_id Int
+  Team        Team     @relation(fields: [team_id], references: [id], map: "employee_team_ibfk_1")
+  Employee    Employee @relation(fields: [employee_id], references: [id], map: "employee_team_ibfk_2")
+
+  @@index([employee_id], map: "employee_id")
+  @@index([team_id], map: "team_id")
+}
+
+model Service {
+  id                  Int                   @id @default(autoincrement())
+  name                String                @unique(map: "name_UNIQUE") @db.VarChar(100)
+  createAt            DateTime?             @default(dbgenerated("(now())")) @db.Timestamp(0)
+  team_id             Int
+  price               Decimal               @db.Decimal(10, 0)
+  Team                Team                  @relation(fields: [team_id], references: [id], map: "service_ibfk_1")
+  Service_Appointment Service_Appointment[]
+
+  @@index([team_id], map: "team_id")
+}
+
+model Service_Appointment {
+  id             Int         @id @default(autoincrement())
+  service_id     Int
+  appointment_id Int
+  Service        Service     @relation(fields: [service_id], references: [id], map: "service_appointment_ibfk_1")
+  Appointment    Appointment @relation(fields: [appointment_id], references: [id], map: "service_appointment_ibfk_2")
+
+  @@index([appointment_id], map: "appointment_id")
+  @@index([service_id], map: "service_id")
+}
+
+model Team {
+  id            Int             @id @default(autoincrement())
+  name          String          @unique(map: "name_UNIQUE") @db.VarChar(100)
+  createAt      DateTime?       @default(dbgenerated("(now())")) @db.Timestamp(0)
+  Employee_Team Employee_Team[]
+  Service       Service[]
+}
+
+enum Appointment_state {
+  pending
+  confirmed
+  process
+  close
+  cancelled
 }
