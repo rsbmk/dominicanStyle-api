@@ -1,42 +1,31 @@
 import { Router } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Team } from "@prisma/client";
+import { validateManyFilds, validateNumberFild } from "../helpers/validateFnc";
+import { handleCatch } from "../handleErrors";
 export const teamRoute = Router();
 const prisma = new PrismaClient();
 
-teamRoute.get("/", (request, response) => {
+// GET /api/v1/team - get all teams
+teamRoute.get("/", (_, response) => {
   prisma.team
     .findMany()
     .then((teams) => {
       response.json(teams).end();
     })
-    .catch((error) => {
-      response
-        .status(500)
-        .json({
-          message: error.message,
-          errorName: error.name,
-        })
-        .end();
-    })
+    .catch((error) => handleCatch(error, response))
     .finally(() => prisma.$disconnect());
 });
 
+// GET /api/v1/team/:teamId - get a single team
 teamRoute.get("/:teamId", (request, response) => {
   const { teamId } = request.params;
-  const id = Number(teamId);
 
-  if (isNaN(id)) {
-    return response
-      .status(400)
-      .json({
-        message: "Invalid role id. Must be a number",
-        status: 400,
-      })
-      .end();
-  }
+  const teamIdNumber = Number(teamId);
+  const isntNumberTeam = validateNumberFild(response, "teamId", teamIdNumber);
+  if (isntNumberTeam) return;
 
   prisma.team
-    .findFirst({ where: { id } })
+    .findFirst({ where: { id: teamIdNumber } })
     .then((team) => {
       if (team === null) {
         return response
@@ -49,30 +38,16 @@ teamRoute.get("/:teamId", (request, response) => {
       }
       response.json(team).end();
     })
-    .catch((error) => {
-      response
-        .status(500)
-        .json({
-          message: error.message,
-          errorName: error.name,
-        })
-        .end();
-    })
+    .catch((error) => handleCatch(error, response))
     .finally(() => prisma.$disconnect());
 });
 
+// POST /api/v1/team/ - create a new team
 teamRoute.post("/", (request, response) => {
-  const { name } = request.body;
+  const { name }: Team = request.body;
 
-  if (!name) {
-    return response
-      .status(400)
-      .json({
-        message: "The name is required",
-        status: 400,
-      })
-      .end();
-  }
+  const hasEmptyValues = validateManyFilds(response, request.body, ["name"]);
+  if (hasEmptyValues) return;
 
   prisma.team
     .create({
@@ -83,14 +58,6 @@ teamRoute.post("/", (request, response) => {
     .then((team) => {
       response.status(201).json(team).end();
     })
-    .catch((error) => {
-      response
-        .status(500)
-        .json({
-          message: error.message,
-          errorName: error.name,
-        })
-        .end();
-    })
+    .catch((error) => handleCatch(error, response))
     .finally(() => prisma.$disconnect());
 });

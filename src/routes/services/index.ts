@@ -1,11 +1,23 @@
-import { Service, PrismaClient } from "@prisma/client";
+import { PrismaClient, Service } from "@prisma/client";
 import { Router } from "express";
+
+import { validateManyFilds, validateNumberFild } from "../helpers/validateFnc";
+
 export const serviceRoute = Router();
 const prisma = new PrismaClient();
 
-serviceRoute.get("/", (request, response) => {
+// GET /api/v1/service/team/:team_id - get all services
+serviceRoute.get("/team/:team_id", (request, response) => {
+  const { team_id } = request.params;
+  const teamIdNumber = Number(team_id);
+
+  const isntNumberTeam = validateNumberFild(response, "team_id", teamIdNumber);
+  if (isntNumberTeam) return;
+
   prisma.service
-    .findMany()
+    .findMany({
+      where: { team_id: teamIdNumber },
+    })
     .then((services) => {
       response.json(services).end();
     })
@@ -18,30 +30,24 @@ serviceRoute.get("/", (request, response) => {
     .finally(() => prisma.$disconnect());
 });
 
+// POST /api/v1/service - create a new service
 serviceRoute.post("/", (request, response) => {
-  const { name, price, description }: Service = request.body;
+  const { name, price, team_id }: Service = request.body;
 
-  if (!name || !price || !description)
-    return response.status(400).json({
-      message: "Todos los campos son requeridos",
-      status: 400,
-      error: "empty field",
-      fields: ["name", "price", "description"],
-    });
+  const priceNumber = Number(price);
+  const team_idNumber = Number(team_id);
 
-  if (isNaN(price))
-    return response.status(400).json({
-      message: "El precio debe ser un numero",
-      status: 400,
-      error: "price must be a number",
-    });
+  const hasAllField = validateManyFilds(response, request.body, ["name", "price", "team_id"]);
+  const isntNumberTeam = validateNumberFild(response, "team_id", team_idNumber);
+  const isntNumberPrice = validateNumberFild(response, "price", priceNumber);
+  if (hasAllField || isntNumberPrice || isntNumberTeam) return;
 
   prisma.service
     .create({
       data: {
         name,
-        price,
-        description,
+        price: priceNumber,
+        team_id: team_idNumber,
       },
     })
     .then((service) => {
