@@ -34,10 +34,10 @@ export const handleCatch = (error: any, response: Response) => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code in ERRORS_CODE) {
       const [errorData, status] = ERRORS_CODE[error.code](error) as [any, number];
-      return response.status(status).json(errorData).end();
+       response.status(status).json(errorData).end();
     }
 
-    return response
+     response
       .status(424)
       .json({
         errorMessage: error.message,
@@ -53,7 +53,7 @@ export const handleCatch = (error: any, response: Response) => {
   }
 
   if (error instanceof Prisma.PrismaClientUnknownRequestError) {
-    return response
+     response
       .status(424)
       .json({
         errorMessage: error.message,
@@ -65,4 +65,6 @@ export const handleCatch = (error: any, response: Response) => {
       })
       .end();
   }
+
+  response.status(500).json({ message: "internal server error", status: 500, error}).end();
 };

@@ -1,5 +1,6 @@
 import { Response } from "express";
 import dayjs from "dayjs";
+import { MIN_TIME_FOR_APPOINTMENT } from "../../constants";
 
 export function validateManyFilds(response: Response, objToValidate: any, fields: string[]) {
   let errors = false;
@@ -105,21 +106,14 @@ export function validateArray(response: Response, array: any[], field: string) {
   return false;
 }
 
-export const isntAfterNow = (response: Response, date: Date) => {
-  let message = "No puede crear una cita con una fecha u hora anterior a la actual";
+export const ValidatedTimeAppointment = (response: Response, date: Date) => {
+  let message = `No se puede agendar una cita sin el tiempo mínimo de anticipación (${MIN_TIME_FOR_APPOINTMENT} horas antes)`;
+  const now = dayjs().add(MIN_TIME_FOR_APPOINTMENT, "hour").toDate().getTime();
+  const minTime = dayjs(date).toDate().getTime();
 
-  const minTimeForAppointment = 3; // minimum time for an appointment in hours
-  const itIsAfterNow = dayjs(date).isAfter(dayjs(), "second");
-  const isAfterAtMinTime = dayjs(date).isAfter(dayjs().add(minTimeForAppointment, "hour"));
+  const isValidDate = now - minTime <= 0;
 
-  const doesNotMinTime = itIsAfterNow && isAfterAtMinTime === false;
-
-  if (itIsAfterNow && doesNotMinTime) {
-    //does not respect the minimum hours of anticipation
-    message = "No se puede agendar una cita sin el tiempo mínimo de anticipación";
-  }
-
-  if (itIsAfterNow === false || doesNotMinTime)
+  if (!isValidDate) {
     response
       .status(400)
       .json({
@@ -130,8 +124,9 @@ export const isntAfterNow = (response: Response, date: Date) => {
         nameInput: "appointmentDate",
       })
       .end();
-
-  return itIsAfterNow === false || doesNotMinTime;
+    return true;
+  }
+  return false;
 };
 
 //minimun length for a CI is 10

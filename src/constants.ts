@@ -12,3 +12,5 @@ export const APPOINTMENT_STATUS = {
   CLOSE: "close",
   CANCELLED: "cancelled",
 };
+
+export const MIN_TIME_FOR_APPOINTMENT = 3; // minimum time for an appointment in hours

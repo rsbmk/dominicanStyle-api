@@ -10,7 +10,7 @@ import {
   validateIsDate,
   validateManyFilds,
   validateNumberFild,
-  isntAfterNow,
+  ValidatedTimeAppointment,
   isCIValid,
 } from "../helpers/validateFnc";
 
@@ -135,33 +135,35 @@ appointmentRouter.post("/", async (request, response) => {
     "client_id",
     "employee_id",
   ]);
+  if (hasAllfields) return;
+
   const isntEmployeeIdNumber = validateNumberFild(response, "employeeId", employeeId);
+  if (isntEmployeeIdNumber) return;
+
   const isntClientIdValid = isCIValid(response, client_id, "client_id");
+  if (isntClientIdValid) return;
+
   const isValidArray = validateArray(response, serviceIds, "serviceIds");
+  if (isValidArray) return;
+
   const isValidateDate = validateIsDate(response, appointmentDate);
-  const isntAfter = isntAfterNow(response, appointmentDate);
+  if (isValidateDate) return;
+
+  const isNotValidDateAppointment = ValidatedTimeAppointment(response, appointmentDate);
+  if (isNotValidDateAppointment) return;
+
   const hasAppointmentInThisDate = await validatedAppointmentExists(
     response,
     employeeId,
     appointmentDate
   );
-
-  if (
-    hasAllfields ||
-    isValidateDate ||
-    isntAfter ||
-    isntEmployeeIdNumber ||
-    isntClientIdValid ||
-    isValidArray ||
-    hasAppointmentInThisDate
-  )
-    return;
+  if (hasAppointmentInThisDate) return;
 
   // crear la cita
   prisma.appointment
     .create({
       data: {
-        appointmentDate: dayjs(appointmentDate).toJSON(),
+        appointmentDate: dayjs(appointmentDate).toJSON(),,
         state: APPOINTMENT_STATUS.PENDING as Appointment_state,
         client_id,
         employee_id: employeeId,
@@ -196,7 +198,7 @@ const validatedAppointmentExists = async (
         },
         AND: {
           appointmentDate: {
-            equals: appointmentDate,
+            equals: dayjs(appointmentDate).toJSON(),
           },
         },
         OR: {
@@ -215,8 +217,8 @@ const validatedAppointmentExists = async (
             message: "Ya existe una cita en ese horario",
             status: 400,
             error: "Elige otro horario",
-            fields: ["schedule"],
-            nameInput: "schedule",
+            fields: ["appointmentDate"],
+            nameInput: "appointmentDate",
             scheduleExist,
           })
           .end();
@@ -225,6 +227,7 @@ const validatedAppointmentExists = async (
       return false;
     })
     .catch((error) => {
+      console.log("validatedAppointmentExists ~ error", {error})
       handleCatch(error, response);
       return false;
     })
