@@ -163,7 +163,7 @@ appointmentRouter.post("/", async (request, response) => {
   prisma.appointment
     .create({
       data: {
-        appointmentDate: dayjs(appointmentDate).toJSON(),,
+        appointmentDate: dayjs(appointmentDate).toJSON(),
         state: APPOINTMENT_STATUS.PENDING as Appointment_state,
         client_id,
         employee_id: employeeId,
