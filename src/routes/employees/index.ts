@@ -17,11 +17,13 @@ employeeRouter.get("/", (_, response) => {
   prisma.employee
     .findMany({
       include: {
-        Appointment: true,
-        Company: true,
         Employee_Team: {
           include: {
-            Team: true,
+            Team: {
+              include: {
+                Service: true,
+              }
+            },
           },
         },
       },
@@ -48,7 +50,11 @@ employeeRouter.get("/:employeeId", (request, response) => {
         Appointment: true,
         Employee_Team: {
           include: {
-            Team: true,
+            Team: {
+              include: {
+                Service: true,
+              }
+            },
           },
         },
       },
@@ -61,30 +67,30 @@ employeeRouter.get("/:employeeId", (request, response) => {
 });
 
 // get /api/v1/employee/:employeeId/team/:teamId/services - employee with services
-employeeRouter.get("/:employeeId/services", (request, response) => {
-  const { employeeId } = request.params;
-  const employee_id = Number(employeeId);
+// employeeRouter.get("/:employeeId/services", (request, response) => {
+//   const { employeeId } = request.params;
+//   const employee_id = Number(employeeId);
 
-  const isntNumberEmployee = validateNumberFild(response, "employeeId", employee_id);
-  if (isntNumberEmployee) return;
+//   const isntNumberEmployee = validateNumberFild(response, "employeeId", employee_id);
+//   if (isntNumberEmployee) return;
 
-  prisma.employee_Team
-    .findMany({
-      where: { employee_id },
-      include: {
-        Team: {
-          include: {
-            Service: true,
-          },
-        },
-      },
-    })
-    .then((employee) => {
-      response.json(employee).end();
-    })
-    .catch((error) => handleCatch(error, response))
-    .finally(() => prisma.$disconnect());
-});
+//   prisma.employee_Team
+//     .findMany({
+//       where: { employee_id },
+//       include: {
+//         Team: {
+//           include: {
+//             Service: true,
+//           },
+//         },
+//       },
+//     })
+//     .then((employee) => {
+//       response.json(employee).end();
+//     })
+//     .catch((error) => handleCatch(error, response))
+//     .finally(() => prisma.$disconnect());
+// });
 
 // POST /api/v1/employee - create a new employee
 type EmployeeBody = {
