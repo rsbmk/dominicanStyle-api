@@ -1,8 +1,8 @@
 import cors from "cors";
 import express from "express";
 
-import { errorRouter } from "./routes/handleErrors/";
 import { router } from "./routes";
+import { clientErrorHandler, handlePrismaErros, logErrors } from "./share/infrastructure/middleware/error.handle";
 
 export const app = express();
 
@@ -13,5 +13,7 @@ app.use(express.json());
 // routers
 app.use("/api/", router);
 
-// handlers errors middleware
-app.use(errorRouter);
+// Middlewares error
+app.use(logErrors)
+app.use(handlePrismaErros)
+app.use(clientErrorHandler)
