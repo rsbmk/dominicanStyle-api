@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { appointmentRouter } from "./appointment";
+import { appointmentRouter } from "./../appointment/Infrastructure/router";
 import { clientRouter } from "./client";
 import { companyRouter } from "./company";
 import { employeeRouter } from "./employees";
