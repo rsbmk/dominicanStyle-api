@@ -1,11 +1,11 @@
 import { Router } from "express";
 
 import { appointmentRouter } from "./../appointment/Infrastructure/router";
-import { clientRouter } from "./client";
-import { companyRouter } from "./company";
-import { employeeRouter } from "./employees";
-import { serviceRoute } from "./services";
-import { teamRoute } from "./team";
+import { clientRouter } from "./../client/infrastructure/router";
+import { companyRouter } from "./../company/Infractructure/router";
+import { employeeRouter } from "./../employee/Infrastructure/router";
+import { serviceRoute } from "./../services/infrastructure/router";
+import { teamRoute } from "./../team/infrastructure/router";
 
 export const router = Router();
 
