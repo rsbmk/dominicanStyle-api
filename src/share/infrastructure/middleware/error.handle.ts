@@ -1,18 +1,18 @@
-import { Prisma } from "@prisma/client";
-import { NextFunction, Request, Response } from "express";
-import { ERRORS_CODE } from "./../../../share/domain/errorshandles";
+import { Prisma } from '@prisma/client'
+import { NextFunction, Request, Response } from 'express'
+import { ERRORS_CODE } from './../../../share/domain/errorshandles'
 
-export function logErrors(error: Error, req: Request, res: Response, next: NextFunction) {
-  console.error(error.stack);
-  next(error);
+export const logErrors = (error: Error, req: Request, res: Response, next: NextFunction): void => {
+  console.error(error.stack)
+  next(error)
 }
 
-export function clientErrorHandler(error: Error, req: Request, res: Response, next: NextFunction) {
-  if (error.name === "ZodError") {
+export const clientErrorHandler = (error: Error, req: Request, res: Response, next: NextFunction): void => {
+  if (error.name === 'ZodError') {
     res.status(400).json({
       error,
       status: 400,
-      message: "Bad Request - ZodError",
+      message: 'Bad Request - ZodError'
     })
   }
 
@@ -21,14 +21,14 @@ export function clientErrorHandler(error: Error, req: Request, res: Response, ne
     status: 500,
     errorStack: String(error.stack),
     error
-  });
+  })
 }
 
-export const handlePrismaErros = (error: Error, req: Request, res: Response, next: NextFunction) => {
+export const handlePrismaErros = (error: Error, req: Request, res: Response, next: NextFunction): void => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code in ERRORS_CODE) {
-      const [errorData, status] = ERRORS_CODE[error.code](error) as [any, number];
-      res.status(status).json(errorData).end();
+      const [errorData, status] = ERRORS_CODE[error.code](error) as [any, number]
+      res.status(status).json(errorData).end()
     }
 
     res
@@ -39,11 +39,11 @@ export const handlePrismaErros = (error: Error, req: Request, res: Response, nex
         errorMeta: error.meta,
         errorName: error.name,
         errorStack: error.stack,
-        message: "unknown error PrismaClientKnownRequestError",
+        message: 'unknown error PrismaClientKnownRequestError',
         status: 424,
-        primaError: error,
+        primaError: error
       })
-      .end();
+      .end()
   }
 
   if (error instanceof Prisma.PrismaClientUnknownRequestError) {
@@ -53,13 +53,12 @@ export const handlePrismaErros = (error: Error, req: Request, res: Response, nex
         errorMessage: error.message,
         errorName: error.name,
         errorStack: error.stack,
-        message: "unknown error of PrismaClientUnknownRequestError",
+        message: 'unknown error of PrismaClientUnknownRequestError',
         status: 424,
-        primaError: error,
+        primaError: error
       })
-      .end();
+      .end()
   }
 
-  next(error);
-};
-
+  next(error)
+}

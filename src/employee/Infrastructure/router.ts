@@ -1,15 +1,14 @@
-import { Employee, PrismaClient } from "@prisma/client";
-import { Router } from "express";
+import { Employee, PrismaClient } from '@prisma/client'
+import { Router } from 'express'
 
-import { validatorHandle } from "../../share/infrastructure/middleware/validator.handle";
-import { createEmployeeSchema, idEmployeeSchema } from "./employee.validator";
+import { validatorHandle } from '../../share/infrastructure/middleware/validator.handle'
+import { createEmployeeSchema, idEmployeeSchema } from './employee.validator'
 
-
-export const employeeRouter = Router();
-const prisma = new PrismaClient();
+export const employeeRouter = Router()
+const prisma = new PrismaClient()
 
 // GET /api/v1/employee - get all employee
-employeeRouter.get("/", (_, response, next) => {
+employeeRouter.get('/', (_, response, next) => {
   prisma.employee
     .findMany({
       include: {
@@ -17,24 +16,22 @@ employeeRouter.get("/", (_, response, next) => {
           include: {
             Team: {
               include: {
-                Service: true,
+                Service: true
               }
-            },
-          },
-        },
-      },
+            }
+          }
+        }
+      }
     })
-    .then((employee) => {
-      response.json(employee).end();
-    })
+    .then((employee) => response.json(employee).end())
     .catch(next)
-});
+})
 
 // GET /api/v1/employee/:employeeId - get a single employee
-employeeRouter.get("/:employeeId",
+employeeRouter.get('/:employeeId',
   validatorHandle(idEmployeeSchema, 'params'),
   (request, response, next) => {
-    const { employeeId } = request.params;
+    const { employeeId } = request.params
 
     prisma.employee
       .findUnique({
@@ -45,24 +42,22 @@ employeeRouter.get("/:employeeId",
             include: {
               Team: {
                 include: {
-                  Service: true,
+                  Service: true
                 }
-              },
-            },
-          },
-        },
+              }
+            }
+          }
+        }
       })
-      .then((employee) => {
-        response.json(employee).end();
-      })
+      .then((employee) => response.json(employee).end())
       .catch(next)
-  });
+  })
 
 // get /api/v1/employee/:employeeId/team/:teamId/services - employee with services
-employeeRouter.get("/:employeeId/services",
+employeeRouter.get('/:employeeId/services',
   validatorHandle(idEmployeeSchema, 'params'),
   (request, response, next) => {
-    const { employeeId } = request.params;
+    const { employeeId } = request.params
 
     prisma.employee_Team
       .findMany({
@@ -70,28 +65,25 @@ employeeRouter.get("/:employeeId/services",
         include: {
           Team: {
             include: {
-              Service: true,
-            },
-          },
-        },
+              Service: true
+            }
+          }
+        }
       })
-      .then((employee) => {
-        response.json(employee).end();
-      })
+      .then((employee) => response.json(employee).end())
       .catch(next)
-  });
+  })
 
 // POST /api/v1/employee - create a new employee
-type EmployeeBody = {
-  teamsIds: string[];
-  employee: Employee;
-};
-employeeRouter.post("/",
-  validatorHandle(createEmployeeSchema, "body"),
+interface EmployeeBody {
+  teamsIds: string[]
+  employee: Employee
+}
+employeeRouter.post('/',
+  validatorHandle(createEmployeeSchema, 'body'),
   (request, response, next) => {
-    const { teamsIds, employee }: EmployeeBody = request.body;
-    const { name, last_name, company_id, address = null, telephone = null, id } = employee as Employee;
-
+    const { teamsIds, employee }: EmployeeBody = request.body
+    const { name, last_name: lastName, company_id: companyId, address = null, telephone = null, id }: Employee = employee
 
     prisma.employee
       .create({
@@ -100,26 +92,26 @@ employeeRouter.post("/",
           name,
           address,
           telephone,
-          last_name,
-          company_id,
+          last_name: lastName,
+          company_id: companyId,
           Employee_Team: {
-            create: teamsIds.map((teamId) => ({ team_id: teamId })),
-          },
-        },
+            create: teamsIds.map((teamId) => ({ team_id: teamId }))
+          }
+        }
       })
       .then((employee) => {
-        response.status(201).json(employee).end();
+        response.status(201).json(employee).end()
       })
       .catch(next)
-  });
+  })
 
 // PUT / api / v1 / employee /: employeeId - update employee
-employeeRouter.put("/:employeeId",
-  validatorHandle(idEmployeeSchema, "params"),
-  validatorHandle(createEmployeeSchema, "body"),
+employeeRouter.put('/:employeeId',
+  validatorHandle(idEmployeeSchema, 'params'),
+  validatorHandle(createEmployeeSchema, 'body'),
   (request, response, next) => {
-    const { employeeId } = request.params;
-    const { name, telephone, address, last_name, company_id, }: Employee = request.body;
+    const { employeeId } = request.params
+    const { name, telephone, address, last_name: lastName, company_id: companyId }: Employee = request.body
 
     prisma.employee
       .update({
@@ -128,12 +120,12 @@ employeeRouter.put("/:employeeId",
           name,
           address,
           telephone,
-          last_name,
-          company_id,
-        },
+          last_name: lastName,
+          company_id: companyId
+        }
       })
       .then((employee) => {
-        response.status(200).json(employee).end();
+        response.status(200).json(employee).end()
       })
       .catch(next)
-  });
+  })

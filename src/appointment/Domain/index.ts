@@ -1,8 +1,8 @@
 /**
  * Model Appointment
- * 
+ *
  */
-export type Appointment = {
+export interface Appointment {
   id: number
   createAt: Date | null
   appointmentDate: Date
@@ -17,7 +17,6 @@ const AppointmentState = {
   process: 'process',
   close: 'close',
   cancelled: 'cancelled'
-};
-
+}
 
 export type Appointment_state = (typeof AppointmentState)[keyof typeof AppointmentState]

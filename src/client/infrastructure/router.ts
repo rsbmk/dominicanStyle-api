@@ -1,63 +1,64 @@
-import { Client, PrismaClient } from "@prisma/client";
-import { Router } from "express";
+import { Client, PrismaClient } from '@prisma/client'
+import { Router } from 'express'
 
-import { validatorHandle } from "../../share/infrastructure/middleware/validator.handle";
-import { cedulaSchema, createClientSchema } from "./client.validation";
+import { validatorHandle } from '../../share/infrastructure/middleware/validator.handle'
+import { cedulaSchema, createClientSchema } from './client.validation'
 
-export const clientRouter = Router();
-const prisma = new PrismaClient();
+export const clientRouter = Router()
+const prisma = new PrismaClient()
 
-//POST /api/v1/client - create a new client
-clientRouter.post("/",
+// POST /api/v1/client - create a new client
+clientRouter.post('/',
   validatorHandle(createClientSchema, 'body'),
   (request, response, next) => {
-    const { cedula, last_name, name, telephone = null }: Client = request.body;
+    const { cedula, last_name: lastName, name, telephone = null }: Client = request.body
 
     prisma.client
       .create({
         data: {
           cedula,
-          last_name,
+          last_name: lastName,
           name,
-          telephone,
-        },
+          telephone
+        }
       })
       .then((client) => {
         response
           .status(201)
           .json({
             client,
-            message: "Cliente creado con exito",
-            status: 201,
+            message: 'Cliente creado con exito',
+            status: 201
           })
-          .end();
+          .end()
       })
-      .catch(next);
-  });
+      .catch(next)
+  })
 
 // GET /api/v1/client/:cedula - Get client by id
-clientRouter.get("/:cedula",
+clientRouter.get('/:cedula',
   validatorHandle(cedulaSchema, 'params'),
   (request, response, next) => {
-    const { cedula } = request.params;
+    const { cedula } = request.params
 
     prisma.client
       .findUnique({
-        where: { cedula },
+        where: { cedula }
       })
       .then((client) => {
-        if (!client)
+        if (client == null) {
           return response
             .status(404)
             .json({
-              message: "El cliente no existe o ingreso una cedula incorrecta",
+              message: 'El cliente no existe o ingreso una cedula incorrecta',
               status: 400,
-              error: "No se encontro el cliente",
-              fields: ["cedula"],
-              nameInput: "cedula",
+              error: 'No se encontro el cliente',
+              fields: ['cedula'],
+              nameInput: 'cedula'
             })
-            .end();
-        response.json(client).end();
+            .end()
+        }
+        response.json(client).end()
       })
-      .catch(next);
-  });
+      .catch(next)
+  })

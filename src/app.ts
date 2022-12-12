@@ -1,17 +1,17 @@
-import cors from "cors";
-import express from "express";
+import cors from 'cors'
+import express from 'express'
 
-import { router } from "./routes";
-import { clientErrorHandler, handlePrismaErros, logErrors } from "./share/infrastructure/middleware/error.handle";
+import { router } from './routes'
+import { clientErrorHandler, handlePrismaErros, logErrors } from './share/infrastructure/middleware/error.handle'
 
-export const app = express();
+export const app = express()
 
 // Middlewares
-app.use(cors());
-app.use(express.json());
+app.use(cors())
+app.use(express.json())
 
 // routers
-app.use("/api/", router);
+app.use('/api/', router)
 
 // Middlewares error
 app.use(logErrors)
