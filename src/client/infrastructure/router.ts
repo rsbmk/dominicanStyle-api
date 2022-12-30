@@ -1,8 +1,10 @@
 import { Client, PrismaClient } from '@prisma/client'
 import { Router } from 'express'
+import { ERRORS_NAMES } from '../../share/domain/errorshandles'
+import { constructorError } from '../../share/helpers'
 
 import { validatorHandle } from '../../share/infrastructure/middleware/validator.handle'
-import { cedulaSchema, createClientSchema } from './client.validation'
+import { createClientSchema, getCedulaSchema } from './client.validation'
 
 export const clientRouter = Router()
 const prisma = new PrismaClient()
@@ -37,7 +39,7 @@ clientRouter.post('/',
 
 // GET /api/v1/client/:cedula - Get client by id
 clientRouter.get('/:cedula',
-  validatorHandle(cedulaSchema, 'params'),
+  validatorHandle(getCedulaSchema, 'params'),
   (request, response, next) => {
     const { cedula } = request.params
 
@@ -46,19 +48,10 @@ clientRouter.get('/:cedula',
         where: { cedula }
       })
       .then((client) => {
-        if (client == null) {
-          return response
-            .status(404)
-            .json({
-              message: 'El cliente no existe o ingreso una cedula incorrecta',
-              status: 400,
-              error: 'No se encontro el cliente',
-              fields: ['cedula'],
-              nameInput: 'cedula'
-            })
-            .end()
-        }
-        response.json(client).end()
+        if (client !== null) return response.json(client).end()
+
+        const error = constructorError('El cliente no existe o ingreso una cedula incorrecta', ERRORS_NAMES.ClientNotFound)
+        return next(error)
       })
       .catch(next)
   })

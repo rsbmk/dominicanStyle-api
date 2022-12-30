@@ -18,3 +18,8 @@ export const ERRORS_CODE: errorsCodeType = {
     409
   ]
 }
+
+export const ERRORS_NAMES = {
+  ZodError: 'ZodError',
+  ClientNotFound: 'ClientNotFound'
+}

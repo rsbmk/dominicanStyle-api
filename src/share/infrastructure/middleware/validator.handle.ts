@@ -13,7 +13,7 @@ export const validatorHandle = (schema: ZodSchema, property: 'body' | 'params' |
     const data = req[property]
     const { success, error } = schema.safeParse(data) as { success: boolean, error: ZodError }
 
-    if (success) next()
+    if (success) return next()
 
     next(error)
   }

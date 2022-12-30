@@ -1,5 +1,7 @@
 import { Prisma } from '@prisma/client'
+
 import { NextFunction, Request, Response } from 'express'
+import { isKnownError } from '../../helpers'
 import { ERRORS_CODE } from './../../../share/domain/errorshandles'
 
 export const logErrors = (error: Error, req: Request, res: Response, next: NextFunction): void => {
@@ -7,31 +9,32 @@ export const logErrors = (error: Error, req: Request, res: Response, next: NextF
   next(error)
 }
 
-export const clientErrorHandler = (error: Error, req: Request, res: Response, next: NextFunction): void => {
-  if (error.name === 'ZodError') {
-    res.status(400).json({
-      error,
-      status: 400,
-      message: 'Bad Request - ZodError'
+export const clientErrorHandler = (error: Error, req: Request, res: Response, next: NextFunction): Response<any, Record<string, any>> => {
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+  if (isKnownError(error.name)) {
+    return res.status(404).json({
+      message: error.message,
+      name: error.name,
+      status: 404
     })
   }
 
-  res.status(500).json({
-    errorMessage: String(error.message),
-    status: 500,
-    errorStack: String(error.stack),
-    error
+  return res.status(500).json({
+    message: String(error.message),
+    name: String(error.name),
+    stack: String(error.stack),
+    status: 500
   })
 }
 
-export const handlePrismaErros = (error: Error, req: Request, res: Response, next: NextFunction): void => {
+export const handlePrismaErros = (error: Error, req: Request, res: Response, next: NextFunction): Response<any, Record<string, any>> | undefined => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code in ERRORS_CODE) {
       const [errorData, status] = ERRORS_CODE[error.code](error) as [any, number]
-      res.status(status).json(errorData).end()
+      return res.status(status).json(errorData).end()
     }
 
-    res
+    return res
       .status(424)
       .json({
         errorMessage: error.message,
@@ -47,7 +50,7 @@ export const handlePrismaErros = (error: Error, req: Request, res: Response, nex
   }
 
   if (error instanceof Prisma.PrismaClientUnknownRequestError) {
-    res
+    return res
       .status(424)
       .json({
         errorMessage: error.message,

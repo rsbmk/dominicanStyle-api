@@ -9,4 +9,8 @@ const createClientSchema = z.object({
   telephone: z.string().regex(/^[0-9]{10}$/).optional()
 })
 
-export { createClientSchema, cedulaSchema }
+const getCedulaSchema = z.object({
+  cedula: cedulaSchema
+})
+
+export { createClientSchema, getCedulaSchema }
